@@ -4,6 +4,16 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 
+type TareoStatus =
+  | 'campo'
+  | 'campo_menor_14'
+  | 'oficina'
+  | 'tardanza'
+  | 'falto'
+  | 'descanso_medico'
+  | 'descanso'
+  | 'vacaciones';
+
 interface Collaborator {
   dni: string;
   name: string;
@@ -20,7 +30,7 @@ interface TareoRecord {
   name: string;
   cargo: string;
   projectCode: string;
-  status: 'campo' | 'oficina' | 'tardanza' | 'falto' | 'descanso_medico' | 'descanso' | 'vacaciones';
+  status: TareoStatus;
   daysWorked: number;
   date: string;
 }
@@ -38,6 +48,17 @@ interface FatigueRecord {
   riskLevel: 'APTO (Bajo Riesgo)' | 'ATENCIÓN (Riesgo Moderado)' | 'NO APTO (Alto Riesgo - Descanso Inmediato)';
   declarationAccepted: boolean;
 }
+
+const STATUS_LABELS: Record<TareoStatus, string> = {
+  campo: 'Campo (>=14d atípico 2x1)',
+  campo_menor_14: 'Campo (<14d régimen 5x2)',
+  oficina: 'Oficina (5x2)',
+  tardanza: 'Tardanza',
+  falto: 'Falta Injustificada',
+  descanso_medico: 'Descanso Médico',
+  descanso: 'Descanso Compensatorio',
+  vacaciones: 'Vacaciones',
+};
 
 export default function TareoPage() {
   const router = useRouter();
@@ -62,7 +83,7 @@ export default function TareoPage() {
   const [selectedDni, setSelectedDni] = useState('');
   const [tareoDni, setTareoDni] = useState('');
   const [projectCode, setProjectCode] = useState('PRJ-01');
-  const [tareoStatus, setTareoStatus] = useState<'campo' | 'oficina' | 'tardanza' | 'falto' | 'descanso_medico' | 'descanso' | 'vacaciones'>('campo');
+  const [tareoStatus, setTareoStatus] = useState<TareoStatus>('campo');
   const [daysWorkedInput, setDaysWorkedInput] = useState('1');
   const [tareoDateInput, setTareoDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [editingTareoId, setEditingTareoId] = useState<string | null>(null);
@@ -175,6 +196,10 @@ export default function TareoPage() {
         } else {
           generatedRest += t.daysWorked * (2 / 5);
         }
+      } else if (t.status === 'campo_menor_14') {
+        totalCampo += t.daysWorked;
+        continuousFieldDays += t.daysWorked;
+        generatedRest += t.daysWorked * (2 / 5); // Régimen 5x2 en campo (<14d)
       } else if (t.status === 'tardanza') {
         totalTardanzas += t.daysWorked;
       } else if (t.status === 'falto') {
@@ -682,8 +707,9 @@ export default function TareoPage() {
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-purple-200 uppercase mb-1">2. Estado / Incidencia</label>
-                <select value={tareoStatus} onChange={(e) => setTareoStatus(e.target.value as any)} className="w-full bg-indigo-950 border border-purple-500/50 rounded-xl px-3 py-2 text-white text-xs">
+                <select value={tareoStatus} onChange={(e) => setTareoStatus(e.target.value as TareoStatus)} className="w-full bg-indigo-950 border border-purple-500/50 rounded-xl px-3 py-2 text-white text-xs">
                   <option value="campo">Campo (&gt;=14d atípico 2x1)</option>
+                  <option value="campo_menor_14">Campo (&lt;14d régimen 5x2)</option>
                   <option value="oficina">Oficina (5x2)</option>
                   <option value="tardanza">Tardanza</option>
                   <option value="falto">Falta Injustificada</option>
@@ -791,7 +817,7 @@ export default function TareoPage() {
                           <td className="px-4 py-3 text-cyan-300">{t.projectCode}</td>
                           <td className="px-4 py-3">
                             <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-900 border border-purple-500 text-purple-200">
-                              {t.status.replace('_', ' ')}
+                              {STATUS_LABELS[t.status] || t.status.replace('_', ' ')}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right text-teal-300">{t.daysWorked} días</td>
