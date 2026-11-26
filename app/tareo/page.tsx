@@ -8,6 +8,7 @@ type TareoStatus =
   | 'campo'
   | 'campo_menor_14'
   | 'feriado_campo'
+  | 'feriado_oficina'
   | 'oficina'
   | 'tardanza'
   | 'falto'
@@ -54,6 +55,7 @@ const STATUS_LABELS: Record<TareoStatus, string> = {
   campo: 'Campo (>=14d atípico 2x1)',
   campo_menor_14: 'Campo (<14d régimen 5x2)',
   feriado_campo: 'Feriado Laborado en Campo (+1d)',
+  feriado_oficina: 'Feriado (Descanso Normal Oficina)',
   oficina: 'Oficina (5x2)',
   tardanza: 'Tardanza',
   falto: 'Falta Injustificada',
@@ -183,6 +185,7 @@ export default function TareoPage() {
     let totalOficina = 0;
     let totalCampo = 0;
     let totalFeriadosCampo = 0;
+    let totalFeriadosOficina = 0;
     let totalTardanzas = 0;
     let totalFaltas = 0;
 
@@ -190,6 +193,10 @@ export default function TareoPage() {
       if (t.status === 'oficina') {
         totalOficina += t.daysWorked;
         generatedRest += t.daysWorked * (2 / 5);
+        continuousFieldDays = 0;
+      } else if (t.status === 'feriado_oficina') {
+        // Descanso normal en oficina por feriado: no genera día compensatorio extra ni descuenta saldo
+        totalFeriadosOficina += t.daysWorked;
         continuousFieldDays = 0;
       } else if (t.status === 'campo') {
         totalCampo += t.daysWorked;
@@ -207,7 +214,7 @@ export default function TareoPage() {
         totalCampo += t.daysWorked;
         totalFeriadosCampo += t.daysWorked;
         continuousFieldDays += t.daysWorked;
-        generatedRest += t.daysWorked * 1; // 1 día completo extra de descanso compensatorio por feriado laborado
+        generatedRest += t.daysWorked * 1; // +1 día extra de descanso compensatorio por feriado laborado en campo
       } else if (t.status === 'tardanza') {
         totalTardanzas += t.daysWorked;
       } else if (t.status === 'falto') {
@@ -224,6 +231,7 @@ export default function TareoPage() {
       totalOficina,
       totalCampo,
       totalFeriadosCampo,
+      totalFeriadosOficina,
       totalTardanzas,
       totalFaltas,
       generatedRest: Number(generatedRest.toFixed(1)),
@@ -332,6 +340,7 @@ export default function TareoPage() {
         'Cargo': c.cargo,
         'Ingreso': c.startDate,
         'Días Oficina': rest.totalOficina,
+        'Feriados Oficina (Descanso Normal)': rest.totalFeriadosOficina,
         'Días Campo Total': rest.totalCampo,
         'Feriados Campo (+1d)': rest.totalFeriadosCampo,
         'Días Acumulados Campo': rest.continuousFieldDays,
@@ -721,6 +730,7 @@ export default function TareoPage() {
                   <option value="campo">Campo (&gt;=14d atípico 2x1)</option>
                   <option value="campo_menor_14">Campo (&lt;14d régimen 5x2)</option>
                   <option value="feriado_campo">Feriado Laborado en Campo (+1d)</option>
+                  <option value="feriado_oficina">Feriado (Descanso Normal Oficina)</option>
                   <option value="oficina">Oficina (5x2)</option>
                   <option value="tardanza">Tardanza</option>
                   <option value="falto">Falta Injustificada</option>
@@ -778,8 +788,11 @@ export default function TareoPage() {
                           </td>
                           <td className="px-3 py-3 text-center text-purple-200">
                             Of: {restBalance.totalOficina}d | Cmp: {restBalance.totalCampo}d
-                            {restBalance.totalFeriadosCampo > 0 && (
-                              <div className="text-[10px] text-amber-300">Incl. {restBalance.totalFeriadosCampo}d feriado</div>
+                            {(restBalance.totalFeriadosCampo > 0 || restBalance.totalFeriadosOficina > 0) && (
+                              <div className="text-[10px] text-amber-300">
+                                {restBalance.totalFeriadosCampo > 0 && `Fer. Cmp: ${restBalance.totalFeriadosCampo}d `}
+                                {restBalance.totalFeriadosOficina > 0 && `Fer. Of: ${restBalance.totalFeriadosOficina}d`}
+                              </div>
                             )}
                           </td>
                           <td className="px-3 py-3 text-center font-bold text-cyan-300">{restBalance.continuousFieldDays} días</td>
@@ -830,7 +843,13 @@ export default function TareoPage() {
                           <td className="px-4 py-3 text-white font-sans font-medium">{t.name}</td>
                           <td className="px-4 py-3 text-cyan-300">{t.projectCode}</td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${t.status === 'feriado_campo' ? 'bg-amber-950/80 border-amber-400 text-amber-200' : 'bg-indigo-900 border-purple-500 text-purple-200'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
+                              t.status === 'feriado_campo'
+                                ? 'bg-amber-950/80 border-amber-400 text-amber-200'
+                                : t.status === 'feriado_oficina'
+                                ? 'bg-sky-950/80 border-sky-400 text-sky-200'
+                                : 'bg-indigo-900 border-purple-500 text-purple-200'
+                            }`}>
                               {STATUS_LABELS[t.status] || t.status.replace('_', ' ')}
                             </span>
                           </td>
