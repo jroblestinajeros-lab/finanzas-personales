@@ -344,7 +344,7 @@ export default function TareoPage() {
         'Días Campo Total': rest.totalCampo,
         'Feriados Campo (+1d)': rest.totalFeriadosCampo,
         'Días Acumulados Campo': rest.continuousFieldDays,
-        'Alerta Fatiga (>28d)': rest.continuousFieldDays >= 28 ? '⚠️ REQUIERE TEST OBLIGATORIO' : 'Normal',
+        'Alerta Fatiga (>=21d)': rest.continuousFieldDays >= 21 ? '⚠️ REQUIERE TEST CONTINUO' : 'Normal',
         'Descansos Netos (d)': rest.netRest,
         'Bolsa Vacacional (d)': vac.netDays,
         'Total Faltas': rest.totalFaltas,
@@ -486,7 +486,7 @@ export default function TareoPage() {
             👥 Maestro
           </button>
           <button onClick={() => setActiveTab('fatigue')} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${activeTab === 'fatigue' ? 'bg-rose-500 text-slate-950 shadow-lg' : 'bg-indigo-950 text-rose-300 border border-rose-500/30'}`}>
-            🚨 Test de Fatiga (&gt;28d)
+            🚨 Test de Fatiga (&gt;=21d)
           </button>
         </div>
       </header>
@@ -561,7 +561,7 @@ export default function TareoPage() {
             <div className={`rounded-3xl p-6 shadow-2xl border transition-all ${editingFatigueId ? 'bg-amber-950/30 border-amber-500/60' : 'bg-indigo-950/90 border-rose-500/40'} space-y-4`}>
               <div className="flex justify-between items-center">
                 <h2 className="text-sm font-bold text-rose-300 uppercase tracking-wider">
-                  {editingFatigueId ? '✏️ Editando Evaluación de Fatiga y Somnolencia' : '🚨 Test de Evaluación de Fatiga y Somnolencia (Regímenes Atípicos >28 Días)'}
+                  {editingFatigueId ? '✏️ Editando Evaluación de Fatiga y Somnolencia' : '🚨 Test de Evaluación de Fatiga y Somnolencia (Evaluación Continua desde el Día 21 en Campo)'}
                 </h2>
                 {editingFatigueId && (
                   <button type="button" onClick={handleCancelEditFatigue} className="text-[11px] bg-rose-950 border border-rose-500 text-rose-300 px-3 py-1 rounded-lg">
@@ -569,7 +569,7 @@ export default function TareoPage() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-purple-200">Evaluación obligatoria con fecha, código de proyecto, validación de contexto físico y escala Epworth.</p>
+              <p className="text-xs text-purple-200">Evaluación continua obligatoria a partir del día 21 de permanencia en campo (tope máximo 28d), con fecha, código de proyecto, validación de contexto físico y escala Epworth.</p>
               
               <form onSubmit={handleSaveFatigueTest} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -768,7 +768,7 @@ export default function TareoPage() {
                       <th className="px-3 py-3">Colaborador</th>
                       <th className="px-3 py-3 text-center">Oficina / Campo</th>
                       <th className="px-3 py-3 text-center">Días Cont. en Campo</th>
-                      <th className="px-3 py-3 text-center">Alerta Fatiga (&gt;28d)</th>
+                      <th className="px-3 py-3 text-center">Alerta Fatiga (&gt;=21d)</th>
                       <th className="px-3 py-3 text-center text-teal-300">Descansos Netos</th>
                       <th className="px-3 py-3 text-center text-rose-300">Faltas / Tardanzas</th>
                       <th className="px-3 py-3 text-right">Bolsa Vacacional (Neto)</th>
@@ -797,9 +797,9 @@ export default function TareoPage() {
                           </td>
                           <td className="px-3 py-3 text-center font-bold text-cyan-300">{restBalance.continuousFieldDays} días</td>
                           <td className="px-3 py-3 text-center">
-                            {restBalance.continuousFieldDays >= 28 ? (
+                            {restBalance.continuousFieldDays >= 21 ? (
                               <span className="bg-rose-950 border border-rose-500 text-rose-300 px-2.5 py-1 rounded-lg text-[10px] font-bold animate-pulse inline-block">
-                                🚨 ALERTA OBLIGATORIA (&gt;=28d)
+                                🚨 TEST CONTINUO (&gt;=21d)
                               </span>
                             ) : (
                               <span className="bg-emerald-950 border border-emerald-500 text-emerald-300 px-2.5 py-1 rounded-lg text-[10px]">Normal</span>
