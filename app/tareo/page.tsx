@@ -169,6 +169,51 @@ export default function TareoPage() {
     setLoading(false);
   }, []);
 
+  // --- RESPALDO Y RESTAURACIÓN JSON ---
+  const handleBackupJSON = () => {
+    const backup = {
+      collaborators,
+      tareos,
+      fatigueRecords,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Respaldo_Tareos_VA_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestoreJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (Array.isArray(parsed.collaborators)) {
+          setCollaborators(parsed.collaborators);
+          localStorage.setItem('vya_collabs_permanent', JSON.stringify(parsed.collaborators));
+        }
+        if (Array.isArray(parsed.tareos)) {
+          setTareos(parsed.tareos);
+          localStorage.setItem('vya_tareos_permanent', JSON.stringify(parsed.tareos));
+        }
+        if (Array.isArray(parsed.fatigueRecords)) {
+          setFatigueRecords(parsed.fatigueRecords);
+          localStorage.setItem('vya_fatigue_permanent', JSON.stringify(parsed.fatigueRecords));
+        }
+        alert('Respaldo restaurado correctamente.');
+      } catch {
+        alert('El archivo seleccionado no es un respaldo JSON válido.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const calculateVacationStatus = (startDateStr: string, regime: 'micro' | 'small', initialVac: number, takenVacationDays: number) => {
     if (!startDateStr) return { earnedDays: 0, netDays: 0 };
     const start = new Date(startDateStr);
@@ -195,7 +240,6 @@ export default function TareoPage() {
         generatedRest += t.daysWorked * (2 / 5);
         continuousFieldDays = 0;
       } else if (t.status === 'feriado_oficina') {
-        // Descanso normal en oficina por feriado: no genera día compensatorio extra ni descuenta saldo
         totalFeriadosOficina += t.daysWorked;
         continuousFieldDays = 0;
       } else if (t.status === 'campo') {
@@ -488,6 +532,16 @@ export default function TareoPage() {
           <button onClick={() => setActiveTab('fatigue')} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${activeTab === 'fatigue' ? 'bg-rose-500 text-slate-950 shadow-lg' : 'bg-indigo-950 text-rose-300 border border-rose-500/30'}`}>
             🚨 Test de Fatiga (&gt;=21d)
           </button>
+          <button
+            onClick={handleBackupJSON}
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-indigo-950 text-amber-300 border border-amber-500/30 hover:bg-indigo-900"
+          >
+            💾 Guardar Respaldo
+          </button>
+          <label className="px-3 py-2 rounded-xl text-xs font-bold bg-indigo-950 text-emerald-300 border border-emerald-500/30 hover:bg-indigo-900 cursor-pointer">
+            📂 Restaurar Respaldo
+            <input type="file" accept=".json" onChange={handleRestoreJSON} className="hidden" />
+          </label>
         </div>
       </header>
 
